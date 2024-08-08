@@ -52,6 +52,8 @@ function App() {
   const [facts, setFacts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentCategory, setCurrentCategory] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const factsPerPage = 10;
 
   useEffect(
     function () {
@@ -63,10 +65,10 @@ function App() {
         if (currentCategory !== "all") {
           query = query.eq("category", currentCategory);
         }
-        const { data: facts, error } = await query
-          .order("votesInteresting", { ascending: false })
-          .limit(1000);
-        setFacts(facts);
+        const { data: facts, error } = await query.order("votesInteresting", {
+          ascending: false,
+        });
+
         if (!error) setFacts(facts);
         else alert("There was a problem getting data");
         setIsLoading(false);
@@ -75,6 +77,14 @@ function App() {
     },
     [currentCategory]
   );
+
+  // Calculate pagination
+  const indexOfLastFact = currentPage * factsPerPage;
+  const indexOfFirstFact = indexOfLastFact - factsPerPage;
+  const currentFacts = facts.slice(indexOfFirstFact, indexOfLastFact);
+
+  // Change page
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   return (
     <>
@@ -88,7 +98,22 @@ function App() {
         {isLoading ? (
           <Loader />
         ) : (
-          <FactList facts={facts} setFacts={setFacts} />
+          <div className="content-container">
+            <FactList
+              facts={currentFacts}
+              setFacts={setFacts}
+              totalFacts={facts.length}
+            />
+            <div className="bottom-container">
+              <Pagination
+                factsPerPage={factsPerPage}
+                totalFacts={facts.length}
+                paginate={paginate}
+                currentPage={currentPage}
+              />
+              <p className="author-credit">Made by Charlie Gu</p>
+            </div>
+          </div>
         )}
       </main>
     </>
@@ -237,7 +262,7 @@ function CategoryFilter({ setCurrentCategory }) {
   );
 }
 
-function FactList({ facts, setFacts }) {
+function FactList({ facts, setFacts, totalFacts }) {
   if (facts.length === 0)
     return (
       <p className="message messageNoFacts">
@@ -252,30 +277,51 @@ function FactList({ facts, setFacts }) {
           <Fact key={fact.id} fact={fact} setFacts={setFacts} />
         ))}
       </ul>
-      <p>There are {facts.length} facts in the database</p>
+      <p>There are {totalFacts} facts in the database</p>
     </section>
   );
 }
 
 function Fact({ fact, setFacts }) {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [userVote, setUserVote] = useState(null);
   const isDisputed =
     fact.votesInteresting + fact.votesMindblowing < fact.votesFalse;
 
   async function handleVote(columnName) {
     setIsUpdating(true);
+    let updateObject = {};
+
+    if (userVote === columnName) {
+      // Remove the vote
+      updateObject[columnName] = fact[columnName] - 1;
+      setUserVote(null);
+    } else {
+      // Add new vote
+      updateObject[columnName] = fact[columnName] + 1;
+
+      // Remove previous vote if exists
+      if (userVote) {
+        updateObject[userVote] = fact[userVote] - 1;
+      }
+
+      setUserVote(columnName);
+    }
+
     const { data: updatedFact, error } = await supabase
       .from("facts")
-      .update({ [columnName]: fact[columnName] + 1 })
+      .update(updateObject)
       .eq("id", fact.id)
       .select();
 
     setIsUpdating(false);
-    if (!error)
+    if (!error) {
       setFacts((facts) =>
         facts.map((f) => (f.id === fact.id ? updatedFact[0] : f))
       );
+    }
   }
+
   return (
     <li className="fact">
       <p>
@@ -303,21 +349,56 @@ function Fact({ fact, setFacts }) {
         <button
           onClick={() => handleVote("votesInteresting")}
           disabled={isUpdating}
+          className={userVote === "votesInteresting" ? "voted" : ""}
         >
-          {" "}
           👍 {fact.votesInteresting}
         </button>
         <button
           onClick={() => handleVote("votesMindblowing")}
           disabled={isUpdating}
+          className={userVote === "votesMindblowing" ? "voted" : ""}
         >
           🤯 {fact.votesMindblowing}
         </button>
-        <button onClick={() => handleVote("votesFalse")} disabled={isUpdating}>
+        <button
+          onClick={() => handleVote("votesFalse")}
+          disabled={isUpdating}
+          className={userVote === "votesFalse" ? "voted" : ""}
+        >
           ⛔ {fact.votesFalse}
         </button>
       </div>
     </li>
+  );
+}
+
+function Pagination({ factsPerPage, totalFacts, paginate, currentPage }) {
+  const pageNumbers = [];
+
+  for (let i = 1; i <= Math.ceil(totalFacts / factsPerPage); i++) {
+    pageNumbers.push(i);
+  }
+
+  return (
+    <div className="pagination-container">
+      <span className="pagination-label">Pages</span>
+      <nav>
+        <ul className="pagination">
+          {pageNumbers.map((number) => (
+            <li key={number} className="page-item">
+              <button
+                onClick={() => paginate(number)}
+                className={`page-link ${
+                  currentPage === number ? "active" : ""
+                }`}
+              >
+                {number}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </div>
   );
 }
 

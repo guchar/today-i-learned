@@ -103,6 +103,69 @@ h1 {
   height: calc(100vh - 48px - 68px - 40px);
 }
 
+.content-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.fact-list {
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+.bottom-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 20px;
+}
+
+.author-credit {
+  color: #fafaf9;
+  font-size: 14px;
+  margin: 0;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.pagination-label {
+  font-size: 16px;
+  font-weight: bold;
+  margin-right: 10px;
+  color: #fafaf9;
+}
+
+.pagination {
+  display: flex;
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.page-item {
+  margin-right: 5px;
+}
+
+.page-link {
+  padding: 5px 10px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  cursor: pointer;
+  background-color: #44403c;
+  color: #fafaf9;
+}
+
+.page-link.active {
+  background-color: #3b82f6;
+  color: #fff;
+}
+
 @media (max-width: 900px) {
   .main {
     grid-template-columns: 1fr;
@@ -132,10 +195,6 @@ h1 {
   max-width: 1500px; /*Element will resize if it's less than 1000px*/
   margin: 0 auto; /*Top and bottom are 0, left and right are auto */
   height: 80vh;
-}
-
-section {
-  overflow: scroll;
 }
 
 /*ELEMENTS*/
